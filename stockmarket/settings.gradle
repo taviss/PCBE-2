@@ -1,2 +1,5 @@
 rootProject.name = 'stockmarket'
+include 'consumer'
+include 'producer'
+include 'core'
 
