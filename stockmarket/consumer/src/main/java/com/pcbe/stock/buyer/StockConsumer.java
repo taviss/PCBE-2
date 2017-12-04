@@ -34,12 +34,14 @@ public class StockConsumer implements Runnable {
     
     private String buildFilter() {
         return "(" +
-                    "eventType = '" + StockEventType.ST_NEW_OFFER + "'" + 
-                    " OR " + 
-                    "eventType='" + StockEventType.ST_OFFER_CHANGE + "'" +
-                ")" + " AND" +
-                " price BETWEEN " + minPrice + " AND " + maxPrice + " AND" +
-                " dateAvailable >= " + minDate;
+                    "(" +
+                        "eventType = '" + StockEventType.ST_NEW_OFFER + "'" +
+                        " OR " +
+                        "eventType='" + StockEventType.ST_OFFER_CHANGE + "'" +
+                    ")" + " AND" +
+                    " price BETWEEN " + minPrice + " AND " + maxPrice + " AND" +
+                    " dateAvailable >= " + minDate +
+                ") OR eventType= '" + StockEventType.ST_OFFER_CLOSED + "'";
                 
     }
     

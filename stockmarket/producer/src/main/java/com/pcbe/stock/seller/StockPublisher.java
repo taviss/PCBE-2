@@ -58,7 +58,7 @@ public class StockPublisher implements Runnable {
         }
         
         try {
-            Thread.sleep(new Random().nextInt(5) * 1000);
+            Thread.sleep(new Random().nextInt(2) * 1000);
             createNewOffer();
             createNewOffer();
             Thread.sleep(new Random().nextInt(2) * 1000);
@@ -67,9 +67,10 @@ public class StockPublisher implements Runnable {
             updateOffer(availableOffers.get(2));
             Thread.sleep(new Random().nextInt(5) * 1000);
             closeOffer(availableOffers.get(1));
+
             
         } catch (InterruptedException|JMSException e) {
-                //TODO
+            System.out.println(e.getMessage());
         }
     }
     
@@ -122,7 +123,6 @@ public class StockPublisher implements Runnable {
     
     private void closeOffer(Offer offer) throws JMSException {
         offer.close();
-        
         availableOffers.remove(offer.getId());
 
         ObjectMessage objectMessage = session.createObjectMessage();

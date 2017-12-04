@@ -248,6 +248,7 @@ public class StockConsumerGUI {
                 Offer currentOffer = model.getElementAt(i);
                 if (offer.getId() == currentOffer.getId()) {
                     model.remove(i);
+                    break;
                 }
             }
         } else {
