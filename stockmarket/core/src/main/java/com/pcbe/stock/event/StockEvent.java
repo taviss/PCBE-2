@@ -1,23 +1,26 @@
 package com.pcbe.stock.event;
 
-public class StockEvent {
+import java.io.Serializable;
+
+public class StockEvent implements Serializable {
     private StockEventType stockEventType;
-    private StockEventData stockEventData;
+    //private StockEventData stockEventData;
+    private Offer offer;
     
     public StockEvent(final StockEventType stockEventType) {
         this.stockEventType = stockEventType;
     }
     
-    public StockEvent(final StockEventType stockEventType, final StockEventData stockEventData) {
+    public StockEvent(final StockEventType stockEventType, final Offer offer) {
         this(stockEventType);
-        this.stockEventData = stockEventData;
+        this.offer = offer;
     }
 
     public StockEventType getStockEventType() {
         return stockEventType;
     }
 
-    public StockEventData getStockEventData() {
-        return stockEventData;
+    public Offer getOffer() {
+        return offer;
     }
 }
