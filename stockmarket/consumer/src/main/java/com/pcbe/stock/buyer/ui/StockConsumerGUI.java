@@ -3,31 +3,23 @@ package com.pcbe.stock.buyer.ui;
 import com.pcbe.stock.buyer.StockConsumer;
 import com.pcbe.stock.event.Offer;
 import com.pcbe.stock.ui.OfferView;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.awt.BorderLayout;
-import java.awt.Dimension;
-import java.awt.FlowLayout;
-import java.awt.GridLayout;
+import java.awt.*;
 import java.awt.event.*;
+import java.io.IOException;
+import java.net.URL;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 
-import javax.swing.BoxLayout;
-import javax.swing.DefaultListModel;
-import javax.swing.JButton;
-import javax.swing.JComboBox;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JList;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextField;
+import javax.swing.*;
 
 public class StockConsumerGUI {
+    private static final Logger LOG = LoggerFactory.getLogger(StockConsumerGUI.class);
 
     private StockConsumer listener;
     private JList<Offer> offerList = new JList<Offer>();
@@ -231,7 +223,13 @@ public class StockConsumerGUI {
         mainPanel.add(contentPanel, BorderLayout.WEST);
         mainFrame.add(mainPanel);
         mainFrame.setResizable(true);
+        URL img = getClass().getClassLoader().getResource("buyer.png");
+        if(img != null) {
+            ImageIcon icon = new ImageIcon(img);
+            mainFrame.setIconImage(icon.getImage());
+        }
         mainFrame.pack();
+        mainFrame.setLocationRelativeTo(null);
         mainFrame.setVisible(true);
         mainFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         mainFrame.addWindowListener(new WindowAdapter() {

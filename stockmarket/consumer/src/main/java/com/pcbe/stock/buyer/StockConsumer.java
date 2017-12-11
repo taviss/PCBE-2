@@ -98,7 +98,7 @@ public class StockConsumer implements Runnable {
 
     @Override
     public void run() {
-        this.stockConsumerGUI = new StockConsumerGUI("someTest", minPrice, maxPrice);
+        this.stockConsumerGUI = new StockConsumerGUI(this.id, minPrice, maxPrice);
         this.stockConsumerGUI.setListener(this);
         try {
             ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory();
@@ -125,13 +125,13 @@ public class StockConsumer implements Runnable {
     
     public boolean resubscribe() {
         try {
-            messageConsumer.close();
-
             String newFilter = buildFilter();
             
             //No need to resubscribe if filter hasn't changed
             if(newFilter.equals(filter))
                 return false;
+
+            messageConsumer.close();
             
             filter = newFilter;
 

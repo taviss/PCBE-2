@@ -15,9 +15,12 @@ public class OfferView extends JPanel implements ListCellRenderer<Offer> {
     private JLabel label5 = new JLabel();
     private JLabel label6 = new JLabel();
     private JLabel label7 = new JLabel();
+    private JPanel textPanel;
 
     public OfferView() {
-        JPanel textPanel = new JPanel(new GridLayout(0, 1));
+        setOpaque(true);
+        textPanel = new JPanel(new GridLayout(0, 1));
+        textPanel.setOpaque(true);
         this.setLayout(new BorderLayout(7, 7));
         textPanel.add(label1);
         textPanel.add(label2);
@@ -44,6 +47,12 @@ public class OfferView extends JPanel implements ListCellRenderer<Offer> {
             label6.setVisible(true);
         }else {
             label6.setVisible(false);
+        }
+        
+        if(isSelected) {
+            textPanel.setBackground(Color.ORANGE);
+        } else {
+            textPanel.setBackground(this.getBackground());
         }
         return this;
     }

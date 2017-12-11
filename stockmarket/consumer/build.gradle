@@ -2,6 +2,7 @@ group 'com.pcbe'
 version '1.0-SNAPSHOT'
 
 apply plugin: 'java'
+apply plugin: 'application'
 
 sourceCompatibility = 1.8
 
@@ -17,3 +18,11 @@ dependencies {
     compile 'org.slf4j:slf4j-api:1.7.25'
     compile 'org.slf4j:slf4j-log4j12:1.7.25'
 }
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'com.pcbe.stock.buyer.MainWindow'
+    }
+}
+
+mainClassName = "com.pcbe.stock.buyer.MainWindow"

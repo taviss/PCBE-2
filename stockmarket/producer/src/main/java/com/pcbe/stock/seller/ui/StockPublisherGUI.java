@@ -3,28 +3,21 @@ package com.pcbe.stock.seller.ui;
 import com.pcbe.stock.event.Offer;
 import com.pcbe.stock.seller.StockPublisher;
 import com.pcbe.stock.ui.OfferView;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.awt.BorderLayout;
-import java.awt.Dimension;
-import java.awt.GridLayout;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.net.URL;
 
 import javax.jms.JMSException;
-import javax.swing.BoxLayout;
-import javax.swing.DefaultListModel;
-import javax.swing.JButton;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JList;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextField;
+import javax.swing.*;
 
 public class StockPublisherGUI {
+    private static final Logger LOG = LoggerFactory.getLogger(StockPublisherGUI.class);
     
     private String company;
     private StockPublisher listener;
@@ -80,8 +73,8 @@ public class StockPublisherGUI {
                                     int index = offerList.getSelectedIndex();
                                     ((DefaultListModel<Offer>) offerList.getModel()).remove(index);
                                     ((DefaultListModel<Offer>) model).add(index, selectedOffer);
-                                    notifyEdited(selectedOffer);
                                     selectedOffer.setHighestBidder("");
+                                    notifyEdited(selectedOffer);
                                 } catch (NumberFormatException ex) {
                                     JOptionPane.showMessageDialog(null, "Price value is not a number.");
                                 }
@@ -183,6 +176,7 @@ public class StockPublisherGUI {
         model = new DefaultListModel<>();
         JList<Offer> offers = new JList<Offer>(model);
         offers.setCellRenderer(new OfferView());
+        offers.setSelectionBackground(Color.GREEN);
         return offers;
     }
 
@@ -193,7 +187,13 @@ public class StockPublisherGUI {
         mainPanel.add(contentPanel, BorderLayout.WEST);
         mainFrame.add(mainPanel);
         mainFrame.setResizable(true);
+        URL img = getClass().getClassLoader().getResource("seller.png");
+        if(img != null) {
+            ImageIcon icon = new ImageIcon(img);
+            mainFrame.setIconImage(icon.getImage());
+        }
         mainFrame.pack();
+        mainFrame.setLocationRelativeTo(null);
         mainFrame.setVisible(true);
         mainFrame.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         mainFrame.addWindowListener(new WindowAdapter() {
@@ -235,19 +235,15 @@ public class StockPublisherGUI {
         try {
             listener.updateOffer(offer);
         } catch (JMSException e) {
-            //TODO
+            LOG.error(e.getMessage());
         }
-    }
-
-    private void notifyFollow(long offerId) {
-        //listener.followRequest(offerId);
     }
 
     public void notifyAdd(Offer offer) {
         try {
             listener.createNewOffer(offer);
         } catch (JMSException e) {
-            //TODO
+            LOG.error(e.getMessage());
         }
     }
 
@@ -255,7 +251,7 @@ public class StockPublisherGUI {
         try {
             listener.closeOffer(offer);
         } catch(JMSException e) {
-            //TODO
+            LOG.error(e.getMessage());
         }
     }
 }
