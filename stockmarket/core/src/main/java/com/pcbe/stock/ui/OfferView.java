@@ -1,4 +1,4 @@
-package com.pcbe.stock.buyer.ui;
+package com.pcbe.stock.ui;
 
 import com.pcbe.stock.event.Offer;
 

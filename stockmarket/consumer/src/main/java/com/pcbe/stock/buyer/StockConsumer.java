@@ -5,31 +5,47 @@ import com.pcbe.stock.buyer.ui.StockConsumerGUI;
 import com.pcbe.stock.event.StockEvent;
 import com.pcbe.stock.event.StockEventType;
 import org.apache.activemq.ActiveMQConnectionFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.jms.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 
 public class StockConsumer implements Runnable {
+    private static final Logger LOG = LoggerFactory.getLogger(StockConsumer.class);
+    
     public static String topicName = "PCBE-Stock";
+    
+    private String id;
     
     private Connection connection;
     private Session session;
     private Destination destination;
     
+    private MessageConsumer messageConsumer;
     private MessageProducer messageProducer;
     
     private String filter;
     private StockConsumerGUI stockConsumerGUI;
     
-    private long minPrice;
-    private long maxPrice;
-    private long minDate;
+    private float minPrice;
+    private float maxPrice;
+    private float minDate;
     
-    public StockConsumer(long minPrice, long maxPrice, long minDate) {
+    public StockConsumer(String id, float minPrice, float maxPrice, float minDate) {
+        this.id = id;
         this.minPrice = minPrice;
         this.maxPrice = maxPrice;
         this.minDate = minDate;
+    }
+    
+    public void setMinPrice(float minPrice) {
+        this.minPrice = minPrice;
+    }
+    
+    public void setMaxPrice(float maxPrice) {
+        this.maxPrice = maxPrice;
     }
     
     private String buildFilter() {
@@ -39,7 +55,9 @@ public class StockConsumer implements Runnable {
                         " OR " +
                         "eventType='" + StockEventType.ST_OFFER_CHANGE + "'" +
                     ")" + " AND" +
-                    " price BETWEEN " + minPrice + " AND " + maxPrice + " AND" +
+                    " (price BETWEEN " + minPrice + " AND " + maxPrice + " OR" +
+                    " oldPrice BETWEEN " + minPrice + " AND " + maxPrice + ")" +
+                    " AND" +
                     " dateAvailable >= " + minDate +
                 ") OR eventType= '" + StockEventType.ST_OFFER_CLOSED + "'";
                 
@@ -52,19 +70,35 @@ public class StockConsumer implements Runnable {
     
     public void notifyOfferSeen(Offer offer) {
         try {
+            offer.increment();
+            StockEvent stockEvent = new StockEvent(StockEventType.ST_OFFER_READ, offer);
             ObjectMessage objectMessage = session.createObjectMessage();
-            objectMessage.setStringProperty("eventType", "offerRead");
-            objectMessage.setStringProperty("sender", offer.getCompany());
-            objectMessage.setObject(offer);
+            objectMessage.setStringProperty("eventType", StockEventType.ST_OFFER_READ.toString());
+            objectMessage.setStringProperty("senderId", offer.getCompany());
+            objectMessage.setObject(stockEvent);
             messageProducer.send(objectMessage);
         } catch(JMSException e) {
-            //TODO
+            LOG.error(e.getMessage());
+        }
+    }
+
+    public void notifyOfferBid(Offer offer) {
+        try {
+            offer.increment();
+            StockEvent stockEvent = new StockEvent(StockEventType.ST_OFFER_BID, offer);
+            ObjectMessage objectMessage = session.createObjectMessage();
+            objectMessage.setStringProperty("eventType", StockEventType.ST_OFFER_BID.toString());
+            objectMessage.setStringProperty("senderId", offer.getCompany());
+            objectMessage.setObject(stockEvent);
+            messageProducer.send(objectMessage);
+        } catch(JMSException e) {
+            LOG.error(e.getMessage());
         }
     }
 
     @Override
     public void run() {
-        this.stockConsumerGUI = new StockConsumerGUI("someTest");
+        this.stockConsumerGUI = new StockConsumerGUI("someTest", minPrice, maxPrice);
         this.stockConsumerGUI.setListener(this);
         try {
             ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory();
@@ -80,13 +114,34 @@ public class StockConsumer implements Runnable {
             
             filter = buildFilter();
             
-            MessageConsumer consumer = session.createConsumer(destination, filter);
-            consumer.setMessageListener(new StockMarketListener());
+            messageConsumer = session.createConsumer(destination, filter);
+            messageConsumer.setMessageListener(new StockMarketListener());
 
             messageProducer = session.createProducer(destination);
         } catch(JMSException e) {
-            System.out.println(e.getMessage());
+            LOG.error(e.getMessage());
         }
+    }
+    
+    public boolean resubscribe() {
+        try {
+            messageConsumer.close();
+
+            String newFilter = buildFilter();
+            
+            //No need to resubscribe if filter hasn't changed
+            if(newFilter.equals(filter))
+                return false;
+            
+            filter = newFilter;
+
+            messageConsumer = session.createConsumer(destination, filter);
+            messageConsumer.setMessageListener(new StockMarketListener());
+            return true;
+        } catch(JMSException e) {
+            LOG.error(e.getMessage());
+        }
+        return false;
     }
 
     private final class StockMarketListener implements MessageListener {
@@ -95,31 +150,20 @@ public class StockConsumer implements Runnable {
         public void onMessage(Message message) {
             try {
                 if(message instanceof ObjectMessage) {
-                    System.out.println(Thread.currentThread().getName() + " received " + message.getStringProperty("eventType"));
+                    LOG.info(id + " received: " + message.getStringProperty("eventType"));
                     Object obj = ((ObjectMessage) message).getObject();
                     
                     if(obj instanceof StockEvent) {
-                        StockEvent stockEvent = (StockEvent)obj; 
-                        System.out.println(((StockEvent)obj).getOffer().getId());
-                        System.out.println(((StockEvent)obj).getStockEventType().getName());
-                        //TODO
-                        /*
-                        Offer offer = new Offer(
-                                stockEvent.getStockEventType().toString(), 
-                                message.getStringProperty("senderId"), 
-                                stockEvent.getOffer().getPrice(), 
-                                stockEvent.getOffer().getId(), 
-                                "Random test",
-                                stockEvent.getStockEventType().equals(StockEventType.ST_OFFER_CLOSED)
-                        );*/
+                        StockEvent stockEvent = (StockEvent)obj;
                         stockConsumerGUI.updateOffer(stockEvent.getOffer());
+                        LOG.info(id + " update for offer " + stockEvent.getOffer().getCompany() + ":" + stockEvent.getOffer().getId());
                     }
                 } else if(message instanceof TextMessage) {
                     TextMessage textMessage = (TextMessage) message;
-                    System.out.println("Producer " + Thread.currentThread().getName() + " received message: " + textMessage.getText());
+                    LOG.info("Producer " + id + " received message: " + textMessage.getText());
                 }
             } catch (JMSException e) {
-                e.printStackTrace();
+                LOG.error(e.getMessage());
             }
         }
 

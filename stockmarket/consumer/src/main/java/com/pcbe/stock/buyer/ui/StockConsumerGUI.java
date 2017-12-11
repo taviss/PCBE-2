@@ -2,17 +2,13 @@ package com.pcbe.stock.buyer.ui;
 
 import com.pcbe.stock.buyer.StockConsumer;
 import com.pcbe.stock.event.Offer;
+import com.pcbe.stock.ui.OfferView;
 
 import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.GridLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.FocusAdapter;
-import java.awt.event.FocusEvent;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
+import java.awt.event.*;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -44,13 +40,15 @@ public class StockConsumerGUI {
     private Date date;
     private float price;
 
-    public StockConsumerGUI(String username) {
+    public StockConsumerGUI(String username, float minPrice, float maxPrice) {
         try {
             date = format.parse("1/1/1000");
         } catch (ParseException e) {
             e.printStackTrace();
         }
         this.username=username;
+        this.minPrice = minPrice;
+        this.maxPrice = maxPrice;
         initGUI();
     }
 
@@ -74,31 +72,26 @@ public class StockConsumerGUI {
                     inputPrice.add(new JLabel("Price:"));
                     JTextField priceField = new JTextField(10);
                     priceField.setText("");
-                    priceField.addFocusListener(new FocusAdapter() {
-                        public void focusLost(FocusEvent e) {
-                            priceField.selectAll();
-                            try {
-                                price = Float.parseFloat(priceField.getText());
-                            }catch(NumberFormatException ex) {
-                                JOptionPane.showMessageDialog(null, "The price value is not a number.");
-                            }
-                        }
-                    });
                     inputPrice.add(priceField);
                     offerPanel.add(inputPrice);
                     JButton bidButton = new JButton("Bid");
                     JButton cancelButton = new JButton("Cancel");
                     bidButton.addActionListener(new ActionListener() {
                         public void actionPerformed(ActionEvent e) {
-                            if(price<selectedOffer.getPrice()) {
-                                JOptionPane.showMessageDialog(null, "Your offer was below the current price.");
-                            } else {
-                                selectedOffer.setPrice(price);
-                                selectedOffer.setHighestBidder(username);
+                            priceField.selectAll();
+                            try {
+                                price = Float.parseFloat(priceField.getText());
+                                if(price<selectedOffer.getPrice()) {
+                                    JOptionPane.showMessageDialog(null, "Your offer was below the current price.");
+                                } else {
+                                    selectedOffer.setPrice(price);
+                                    selectedOffer.setHighestBidder(username);
+                                    notifyBid(selectedOffer);
+                                }
+                                bidFrame.dispatchEvent(new WindowEvent(bidFrame, WindowEvent.WINDOW_CLOSING));
+                            }catch(NumberFormatException ex) {
+                                JOptionPane.showMessageDialog(null, "The price value is not a number.");
                             }
-                            bidFrame.dispatchEvent(new WindowEvent(bidFrame, WindowEvent.WINDOW_CLOSING));
-                            notifySeen(selectedOffer);
-                            updateOffer(selectedOffer);
                         }
                     });
                     cancelButton.addActionListener(new ActionListener() {
@@ -129,6 +122,30 @@ public class StockConsumerGUI {
                 JTextField input = new JTextField(10);
                 JComboBox<String> comboBox = new JComboBox<>(
                         new String[] { "Company", "MinPrice", "MaxPrice", "Oldest" });
+                
+                comboBox.addItemListener(new ItemListener() {
+                    @Override
+                    public void itemStateChanged(ItemEvent e) {
+                        if(e.getStateChange() == ItemEvent.SELECTED) {
+                            switch (e.getItem().toString()) {
+                                case "Company": {
+                                    break;
+                                }
+                                case "MinPrice": {
+                                    input.setText(String.valueOf(minPrice));
+                                    break;
+                                }
+                                case "MaxPrice": {
+                                    input.setText(String.valueOf(maxPrice));
+                                    break;
+                                }
+                                case "Oldest": {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                });
                 selectPanel.add(input);
                 selectPanel.add(comboBox);
                 int result = JOptionPane.showConfirmDialog(null, selectPanel, "Filter offers:",
@@ -158,6 +175,8 @@ public class StockConsumerGUI {
                             }
                         }
                         //notifySubscribeTo(comboBox.getSelectedItem() + ":" + input.getText());
+                        listener.setMinPrice(minPrice);
+                        listener.setMaxPrice(maxPrice);
                         filters.add(comboBox.getSelectedItem() + ":" + input.getText());
                         break;
                 }
@@ -174,26 +193,12 @@ public class StockConsumerGUI {
                 JOptionPane.showMessageDialog(null, list.toString());
             }
         });
-        JButton removeFiltersButton = new JButton("Remove all filters");
-        removeFiltersButton.addActionListener(new ActionListener() {
+        JButton refilterButton = new JButton("Apply filters");
+        refilterButton.addActionListener(new ActionListener() {
             public void actionPerformed(ActionEvent e) {
-                /*
-                for(TopicSubscriber subscriber: subscribers) {
-                    try {
-                        subscriber.close();
-                    } catch (JMSException e1) {
-                        e1.printStackTrace();
-                    }
-                }*/
-                minPrice = 0;
-                maxPrice = 999999999;
-                try {
-                    date = format.parse("1/1/1000");
-                } catch (ParseException ex) {
-                    ex.printStackTrace();
+                if(listener.resubscribe()) {
+                    model.clear();
                 }
-                //subscribers.removeAll(subscribers);
-                filters.removeAll(filters);
             }
         });
 
@@ -206,7 +211,7 @@ public class StockConsumerGUI {
         buttonsPanel.add(viewButton, BorderLayout.WEST);
         buttonsPanel.add(filterButton, BorderLayout.EAST);
         buttonsPanel.add(showFiltersButton, BorderLayout.WEST);
-        buttonsPanel.add(removeFiltersButton, BorderLayout.EAST);
+        buttonsPanel.add(refilterButton, BorderLayout.EAST);
         contentPanel.add(buttonsPanel);
         contentPanel.setPreferredSize(new Dimension(500, 500));
         return contentPanel;
@@ -240,8 +245,15 @@ public class StockConsumerGUI {
     private void notifySeen(Offer offer) {
         listener.notifyOfferSeen(offer);
     }
+    
+    private void notifyBid(Offer offer) {
+        listener.notifyOfferBid(offer);
+    }
 
     public void updateOffer(Offer offer) {
+        if(model.contains(offer))
+            return;
+        
         int offerCount = model.getSize();
         if (offer.isClosed()) {
             for (int i = 0; i < offerCount; i++) {
@@ -259,6 +271,12 @@ public class StockConsumerGUI {
                 if (offer.getId() == currentOffer.getId()) {
                     exists = true;
                     position = i;
+                    
+                    //Remove the offer if the new price doesn't match criteria
+                    if(offer.getPrice() < minPrice || offer.getPrice() > maxPrice) {
+                        model.remove(i);
+                        return;
+                    }
                 }
             }
             if (exists) {

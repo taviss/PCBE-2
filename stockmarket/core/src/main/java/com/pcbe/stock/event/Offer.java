@@ -12,6 +12,7 @@ public class Offer implements Serializable {
     private String title;
     private String description;
     private Float price;
+    private Float oldPrice;
     private long creationDate;
     private Date lastChanged;
     private String company;
@@ -22,6 +23,7 @@ public class Offer implements Serializable {
         this.title = title;
         this.description = description;
         this.price = price;
+        this.oldPrice = 0.0f;
         this.creationDate = System.currentTimeMillis();
         this.lastChanged = new Date();
         this.company = company;
@@ -54,7 +56,12 @@ public class Offer implements Serializable {
     }
 
     public void setPrice(float price) {
-        this.price=price;
+        this.oldPrice = this.price;
+        this.price = price;
+    }
+    
+    public float getOldPrice() {
+        return this.oldPrice;
     }
 
     public long getCreationDate() {
@@ -107,6 +114,19 @@ public class Offer implements Serializable {
 
     public String getHighestBidder() {
         return buyer;
+    }
+    
+    public boolean equals(Object object) {
+        if(object instanceof Offer) {
+            Offer otherOffer = (Offer) object;
+            if(this.id == otherOffer.id &&
+                    this.company.equals(otherOffer.company) &&
+                    this.price == otherOffer.price &&
+                    this.oldPrice == otherOffer.oldPrice) {
+                return true;
+            }
+        }
+        return false;
     }
 
 }

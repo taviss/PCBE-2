@@ -3,13 +3,18 @@ package com.pcbe.stock.seller;
 import com.pcbe.stock.event.Offer;
 import com.pcbe.stock.event.StockEvent;
 import com.pcbe.stock.event.StockEventType;
+import com.pcbe.stock.seller.ui.StockPublisherGUI;
 import org.apache.activemq.ActiveMQConnectionFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.jms.*;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class StockPublisher implements Runnable {
+    private static final Logger LOG = LoggerFactory.getLogger(StockPublisher.class);
+    
     public static String topicName = "PCBE-Stock";
 
     private String id;
@@ -21,22 +26,28 @@ public class StockPublisher implements Runnable {
     private MessageProducer messageProducer;
     private MessageConsumer messageConsumer;
     
+    private StockPublisherGUI stockPublisherGUI;
+    
     private AtomicInteger offers;
-    private HashMap<Integer, Offer> availableOffers;
     
     public StockPublisher(String id) {
         this.id = id;
         this.offers = new AtomicInteger(0);
-        this.availableOffers = new HashMap<>();
     }
 
     public void dispose() throws JMSException {
         session.close();
         connection.close();
     }
+    
+    public int getNextId() {
+        return this.offers.getAndIncrement();
+    }
 
     @Override
     public void run() {
+        this.stockPublisherGUI = new StockPublisherGUI(this.id);
+        this.stockPublisherGUI.setListener(this);
         try {
             ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory();
             connectionFactory.setBrokerURL(ActiveMQConnectionFactory.DEFAULT_BROKER_URL);
@@ -49,81 +60,81 @@ public class StockPublisher implements Runnable {
 
             destination = session.createTopic(topicName);
             
-            messageConsumer = session.createConsumer(destination, "eventType='offerRead' AND senderId='" + this.id + "'");
+            messageConsumer = session.createConsumer(destination, "(eventType='" + StockEventType.ST_OFFER_READ + "' OR eventType='" + StockEventType.ST_OFFER_BID + "') AND senderId='" + this.id + "'");
             messageConsumer.setMessageListener(new StockMarketListener());
 
             messageProducer = session.createProducer(destination);
         } catch(JMSException e) {
-            System.out.println(e.getMessage());
-        }
-        
-        try {
-            Thread.sleep(new Random().nextInt(2) * 1000);
-            createNewOffer();
-            createNewOffer();
-            Thread.sleep(new Random().nextInt(2) * 1000);
-            createNewOffer();
-            Thread.sleep(new Random().nextInt(5) * 1000);
-            updateOffer(availableOffers.get(2));
-            Thread.sleep(new Random().nextInt(5) * 1000);
-            closeOffer(availableOffers.get(1));
-
-            
-        } catch (InterruptedException|JMSException e) {
-            System.out.println(e.getMessage());
+            LOG.error(e.getMessage());
         }
     }
-    
-    private void createNewOffer() throws JMSException {
+
+    public void createNewOffer(Offer offer) throws JMSException {
         ObjectMessage objectMessage = session.createObjectMessage();
-        //StockEventData stockEventData = new StockEventData("test", new Random().nextFloat()*1000, System.currentTimeMillis(), "todoKey");
-        int offerId = this.offers.getAndIncrement();
-        Offer offer = new Offer(
-                "Random title",
-                this.id,
-                500,
-                offerId,
-                "Random test",
-                false
-        );
-        
-        availableOffers.put(offerId, offer);
 
         StockEvent stockEvent = new StockEvent(StockEventType.ST_NEW_OFFER, offer);
         objectMessage.setObject(stockEvent);
         objectMessage.setStringProperty("senderId", this.id);
         objectMessage.setStringProperty("eventType", StockEventType.ST_NEW_OFFER.toString());
         objectMessage.setFloatProperty("price", offer.getPrice());
+        objectMessage.setFloatProperty("oldPrice", offer.getPrice());
         objectMessage.setLongProperty("dateAvailable", offer.getCreationDate());
 
-        System.out.println("Sent new offer:\n" +
+        LOG.info(offer.getCompany() + " sent new offer with id" + offer.getId() + ":\n" +
                 "Price: " + offer.getPrice() + "\n" +
-                "Date: " + offer.getCreationDate());
+                "Date: " + offer.getCreationDate() + "\n");
 
         messageProducer.send(objectMessage);
     }
     
-    private void updateOffer(Offer offer) throws JMSException {
-        offer.setPrice(235);
-        
+    public void createNewOffer(String title, float price, String description) throws JMSException {
         ObjectMessage objectMessage = session.createObjectMessage();
+        
+        int offerId = this.offers.getAndIncrement();
+        Offer offer = new Offer(
+                title,
+                this.id,
+                price,
+                offerId,
+                description,
+                false
+        );
+
+        StockEvent stockEvent = new StockEvent(StockEventType.ST_NEW_OFFER, offer);
+        objectMessage.setObject(stockEvent);
+        objectMessage.setStringProperty("senderId", this.id);
+        objectMessage.setStringProperty("eventType", StockEventType.ST_NEW_OFFER.toString());
+        objectMessage.setFloatProperty("price", offer.getPrice());
+        objectMessage.setFloatProperty("oldPrice", offer.getPrice());
+        objectMessage.setLongProperty("dateAvailable", offer.getCreationDate());
+
+        LOG.info(offer.getCompany() + " sent new offer with id" + offer.getId() + ":\n" +
+                "Price: " + offer.getPrice() + "\n" +
+                "Date: " + offer.getCreationDate() + "\n");
+
+        messageProducer.send(objectMessage);
+    }
+
+    public void updateOffer(Offer offer) throws JMSException {
+        ObjectMessage objectMessage = session.createObjectMessage();
+        
         StockEvent stockEvent = new StockEvent(StockEventType.ST_OFFER_CHANGE, offer);
         objectMessage.setObject(stockEvent);
         objectMessage.setStringProperty("senderId", this.id);
         objectMessage.setStringProperty("eventType", StockEventType.ST_OFFER_CHANGE.toString());
         objectMessage.setFloatProperty("price", offer.getPrice());
+        objectMessage.setFloatProperty("oldPrice", offer.getOldPrice());
         objectMessage.setLongProperty("dateAvailable", offer.getCreationDate());
 
-        System.out.println("Sent update offer:\n" +
+        LOG.info(offer.getCompany() + " sent updated offer with id " + offer.getId() + ":\n" +
                 "Price: " + offer.getPrice() + "\n" +
-                "Date: " + offer.getCreationDate());
+                "Date: " + offer.getCreationDate() + "\n");
 
         messageProducer.send(objectMessage);
     }
-    
-    private void closeOffer(Offer offer) throws JMSException {
+
+    public void closeOffer(Offer offer) throws JMSException {
         offer.close();
-        availableOffers.remove(offer.getId());
 
         ObjectMessage objectMessage = session.createObjectMessage();
         StockEvent stockEvent = new StockEvent(StockEventType.ST_OFFER_CLOSED, offer);
@@ -131,9 +142,9 @@ public class StockPublisher implements Runnable {
         objectMessage.setStringProperty("senderId", this.id);
         objectMessage.setStringProperty("eventType", StockEventType.ST_OFFER_CLOSED.toString());
 
-        System.out.println("Sent close offer:\n" +
+        LOG.info(offer.getCompany() + " sent close offer with id" + offer.getId() + ":\n" +
                 "Price: " + offer.getPrice() + "\n" +
-                "Date: " + offer.getCreationDate());
+                "Date: " + offer.getCreationDate() + "\n");
 
         messageProducer.send(objectMessage);
     }
@@ -145,16 +156,18 @@ public class StockPublisher implements Runnable {
             try {
                 if(message instanceof ObjectMessage) {
                     Object obj = ((ObjectMessage) message).getObject();
-
                     if(obj instanceof StockEvent) {
-                        System.out.println(((StockEvent)obj).getOffer());
-                        System.out.println(((StockEvent)obj).getStockEventType().getName());
-                        //TODO
-                        //messageProducer.se
+                        LOG.info(id + " received: " + message.getStringProperty("eventType"));
+                        StockEvent stockEvent = (StockEvent) obj;
+                        stockPublisherGUI.updateOffer(stockEvent.getOffer());
+                        LOG.info(id + " update for offer " + stockEvent.getOffer().getCompany() + ":" + stockEvent.getOffer().getId());
                     }
                 } else if(message instanceof TextMessage) {
                     TextMessage textMessage = (TextMessage) message;
-                    System.out.println("Consumer " + Thread.currentThread().getName() + " received message: " + textMessage.getText());
+                    if(message.getStringProperty("eventType").equals(StockEventType.ST_OFFER_REQUEST)) {
+                        stockPublisherGUI.updateAllOffers();
+                    }
+                    LOG.info("Producer " + id + " received message: " + textMessage.getText());
                 }
             } catch (JMSException e) {
                 e.printStackTrace();
