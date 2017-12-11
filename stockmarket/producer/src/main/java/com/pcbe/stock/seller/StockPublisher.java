@@ -81,6 +81,7 @@ public class StockPublisher implements Runnable {
         objectMessage.setFloatProperty("price", offer.getPrice());
         objectMessage.setFloatProperty("oldPrice", offer.getPrice());
         objectMessage.setLongProperty("dateAvailable", offer.getCreationDate());
+        objectMessage.setStringProperty("company", offer.getCompany());
 
         LOG.info(offer.getCompany() + " sent new offer with id" + offer.getId() + ":\n" +
                 "Price: " + offer.getPrice() + "\n" +
@@ -109,6 +110,7 @@ public class StockPublisher implements Runnable {
         objectMessage.setFloatProperty("price", offer.getPrice());
         objectMessage.setFloatProperty("oldPrice", offer.getPrice());
         objectMessage.setLongProperty("dateAvailable", offer.getCreationDate());
+        objectMessage.setStringProperty("company", offer.getCompany());
 
         LOG.info(offer.getCompany() + " sent new offer with id" + offer.getId() + ":\n" +
                 "Price: " + offer.getPrice() + "\n" +
@@ -127,6 +129,7 @@ public class StockPublisher implements Runnable {
         objectMessage.setFloatProperty("price", offer.getPrice());
         objectMessage.setFloatProperty("oldPrice", offer.getOldPrice());
         objectMessage.setLongProperty("dateAvailable", offer.getCreationDate());
+        objectMessage.setStringProperty("company", offer.getCompany());
 
         LOG.info(offer.getCompany() + " sent updated offer with id " + offer.getId() + ":\n" +
                 "Price: " + offer.getPrice() + "\n" +

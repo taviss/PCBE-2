@@ -28,6 +28,7 @@ public class StockConsumerGUI {
     private ArrayList<String> filters = new ArrayList<String>();
     private float minPrice = 0;
     private float maxPrice = 999999999;
+    private String company;
     private DateFormat format = new SimpleDateFormat("dd/MM/yyyy");
     private Date date;
     private float price;
@@ -114,13 +115,14 @@ public class StockConsumerGUI {
                 JTextField input = new JTextField(10);
                 JComboBox<String> comboBox = new JComboBox<>(
                         new String[] { "Company", "MinPrice", "MaxPrice", "Oldest" });
-                
+                input.setText(company);
                 comboBox.addItemListener(new ItemListener() {
                     @Override
                     public void itemStateChanged(ItemEvent e) {
                         if(e.getStateChange() == ItemEvent.SELECTED) {
                             switch (e.getItem().toString()) {
                                 case "Company": {
+                                    input.setText(company);
                                     break;
                                 }
                                 case "MinPrice": {
@@ -144,6 +146,9 @@ public class StockConsumerGUI {
                         JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE);
                 switch (result) {
                     case JOptionPane.OK_OPTION:
+                        if(comboBox.getSelectedItem().equals("Company")) {
+                            company = input.getText();
+                        }
                         if(comboBox.getSelectedItem().equals("MinPrice")) {
                             try {
                                 minPrice = Float.parseFloat(input.getText());
@@ -169,6 +174,7 @@ public class StockConsumerGUI {
                         //notifySubscribeTo(comboBox.getSelectedItem() + ":" + input.getText());
                         listener.setMinPrice(minPrice);
                         listener.setMaxPrice(maxPrice);
+                        listener.setCompany(company);
                         filters.add(comboBox.getSelectedItem() + ":" + input.getText());
                         break;
                 }

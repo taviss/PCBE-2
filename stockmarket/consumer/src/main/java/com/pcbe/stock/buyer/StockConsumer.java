@@ -32,12 +32,14 @@ public class StockConsumer implements Runnable {
     private float minPrice;
     private float maxPrice;
     private float minDate;
+    private String company;
     
     public StockConsumer(String id, float minPrice, float maxPrice, float minDate) {
         this.id = id;
         this.minPrice = minPrice;
         this.maxPrice = maxPrice;
         this.minDate = minDate;
+        this.company = "*";
     }
     
     public void setMinPrice(float minPrice) {
@@ -46,6 +48,10 @@ public class StockConsumer implements Runnable {
     
     public void setMaxPrice(float maxPrice) {
         this.maxPrice = maxPrice;
+    }
+    
+    public void setCompany(String company) {
+        this.company = company;
     }
     
     private String buildFilter() {
@@ -58,7 +64,8 @@ public class StockConsumer implements Runnable {
                     " (price BETWEEN " + minPrice + " AND " + maxPrice + " OR" +
                     " oldPrice BETWEEN " + minPrice + " AND " + maxPrice + ")" +
                     " AND" +
-                    " dateAvailable >= " + minDate +
+                    " dateAvailable >= " + minDate + " AND" +
+                    " company = '" + company + "'" +
                 ") OR eventType= '" + StockEventType.ST_OFFER_CLOSED + "'";
                 
     }
@@ -139,6 +146,7 @@ public class StockConsumer implements Runnable {
         try {
             LOG.info("Building new filter...");
             String newFilter = buildFilter();
+            LOG.info(newFilter);
             
             //No need to resubscribe if filter hasn't changed
             if(newFilter.equals(filter)) {
