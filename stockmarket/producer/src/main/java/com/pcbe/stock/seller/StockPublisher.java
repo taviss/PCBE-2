@@ -21,7 +21,7 @@ public class StockPublisher implements Runnable {
     
     private Connection connection;
     private Session session;
-    private Destination destination;
+    private Topic destination;
 
     private MessageProducer messageProducer;
     private MessageConsumer messageConsumer;
@@ -54,16 +54,18 @@ public class StockPublisher implements Runnable {
             connectionFactory.setTrustedPackages(new ArrayList<>(Arrays.asList("com.pcbe.stock", "java.sql", "java.lang", "java.util")));
 
             connection = connectionFactory.createConnection();
+            connection.setClientID(this.id);
             connection.start();
 
             session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
 
             destination = session.createTopic(topicName);
             
-            messageConsumer = session.createConsumer(destination, "(eventType='" + StockEventType.ST_OFFER_READ + "' OR eventType='" + StockEventType.ST_OFFER_BID + "') AND senderId='" + this.id + "'");
+            messageConsumer = session.createDurableSubscriber(destination, "CONN" + this.id, "(eventType='" + StockEventType.ST_OFFER_READ + "' OR eventType='" + StockEventType.ST_OFFER_BID + "') AND senderId='" + this.id + "' OR eventType='" + StockEventType.ST_OFFER_REQUEST + "'", true);
             messageConsumer.setMessageListener(new StockMarketListener());
 
             messageProducer = session.createProducer(destination);
+            messageProducer.setDeliveryMode(DeliveryMode.PERSISTENT);
         } catch(JMSException e) {
             LOG.error(e.getMessage());
         }
@@ -164,7 +166,8 @@ public class StockPublisher implements Runnable {
                     }
                 } else if(message instanceof TextMessage) {
                     TextMessage textMessage = (TextMessage) message;
-                    if(message.getStringProperty("eventType").equals(StockEventType.ST_OFFER_REQUEST)) {
+                    if(message.getStringProperty("eventType").equals(StockEventType.ST_OFFER_REQUEST.toString())) {
+                        LOG.info("Sending available offers update...");
                         stockPublisherGUI.updateAllOffers();
                     }
                     LOG.info("Producer " + id + " received message: " + textMessage.getText());

@@ -224,9 +224,9 @@ public class StockPublisherGUI {
                 offer.setPrice(offerA.getPrice());
                 offer.setHighestBidder(offerA.getHighestBidder());
                 ((DefaultListModel<Offer>) model).insertElementAt(offer, i);
+                notifyEdited(offer);
+                break;
             }
-            notifyEdited(offer);
-            break;
         }
         
     }

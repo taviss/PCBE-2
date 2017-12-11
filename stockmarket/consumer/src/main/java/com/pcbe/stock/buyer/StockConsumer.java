@@ -21,7 +21,7 @@ public class StockConsumer implements Runnable {
     
     private Connection connection;
     private Session session;
-    private Destination destination;
+    private Topic destination;
     
     private MessageConsumer messageConsumer;
     private MessageProducer messageProducer;
@@ -95,6 +95,16 @@ public class StockConsumer implements Runnable {
             LOG.error(e.getMessage());
         }
     }
+    
+    public void requestOffers() {
+        try {
+            TextMessage textMessage = session.createTextMessage();
+            textMessage.setStringProperty("eventType", StockEventType.ST_OFFER_REQUEST.toString());
+            messageProducer.send(textMessage);
+        } catch(JMSException e) {
+            LOG.error(e.getMessage());
+        }
+    }
 
     @Override
     public void run() {
@@ -106,6 +116,7 @@ public class StockConsumer implements Runnable {
             connectionFactory.setTrustedPackages(new ArrayList<>(Arrays.asList("com.pcbe.stock", "java.sql", "java.lang", "java.util")));
 
             connection = connectionFactory.createConnection();
+            connection.setClientID(this.id);
             connection.start();
 
             session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
@@ -114,10 +125,11 @@ public class StockConsumer implements Runnable {
             
             filter = buildFilter();
             
-            messageConsumer = session.createConsumer(destination, filter);
+            messageConsumer = session.createDurableSubscriber(destination, "CONN" + this.id, filter, true);
             messageConsumer.setMessageListener(new StockMarketListener());
 
             messageProducer = session.createProducer(destination);
+            messageProducer.setDeliveryMode(DeliveryMode.PERSISTENT);
         } catch(JMSException e) {
             LOG.error(e.getMessage());
         }
@@ -125,18 +137,25 @@ public class StockConsumer implements Runnable {
     
     public boolean resubscribe() {
         try {
+            LOG.info("Building new filter...");
             String newFilter = buildFilter();
             
             //No need to resubscribe if filter hasn't changed
-            if(newFilter.equals(filter))
+            if(newFilter.equals(filter)) {
+                LOG.info("No resubscription needed.");
                 return false;
+            }
 
             messageConsumer.close();
+            LOG.info("Message consumer closed...");
             
             filter = newFilter;
 
-            messageConsumer = session.createConsumer(destination, filter);
+            messageConsumer = session.createDurableSubscriber(destination, "CONN" + this.id, filter, true);
             messageConsumer.setMessageListener(new StockMarketListener());
+            LOG.info("Message consumer recreated...");
+            requestOffers();
+            LOG.info("Sent request offers message...");
             return true;
         } catch(JMSException e) {
             LOG.error(e.getMessage());

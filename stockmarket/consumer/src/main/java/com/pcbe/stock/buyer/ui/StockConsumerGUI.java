@@ -249,11 +249,13 @@ public class StockConsumerGUI {
     }
 
     public void updateOffer(Offer offer) {
+        LOG.info("Updating offer " + offer.getCompany() + ":" + offer.getId());
         if(model.contains(offer))
             return;
         
         int offerCount = model.getSize();
         if (offer.isClosed()) {
+            LOG.info("Closed offer " + offer.getCompany() + ":" + offer.getId());
             for (int i = 0; i < offerCount; i++) {
                 Offer currentOffer = model.getElementAt(i);
                 if (offer.getId() == currentOffer.getId()) {
@@ -273,14 +275,17 @@ public class StockConsumerGUI {
                     //Remove the offer if the new price doesn't match criteria
                     if(offer.getPrice() < minPrice || offer.getPrice() > maxPrice) {
                         model.remove(i);
+                        LOG.info("Removed offer " + offer.getCompany() + ":" + offer.getId());
                         return;
                     }
                 }
             }
             if (exists) {
+                LOG.info("Updated offer " + offer.getCompany() + ":" + offer.getId());
                 model.remove(position);
                 model.insertElementAt(offer, position);
             } else {
+                LOG.info("Added offer " + offer.getCompany() + ":" + offer.getId());
                 model.add(model.getSize(), offer);
             }
         }
