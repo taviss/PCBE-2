@@ -4,6 +4,7 @@ import com.pcbe.stock.event.Offer;
 
 import javax.swing.*;
 import java.awt.*;
+import java.util.Date;
 
 public class OfferView extends JPanel implements ListCellRenderer<Offer> {
 
@@ -39,7 +40,7 @@ public class OfferView extends JPanel implements ListCellRenderer<Offer> {
         label1.setText("Title : " + offer.getTitle());
         label2.setText("Company : " + offer.getCompany());
         label3.setText("Price : " + offer.getPrice());
-        label4.setText("Creation date : " + offer.getCreationDate());
+        label4.setText("Creation date : " + new Date(offer.getCreationDate()).toString());
         label5.setText("Last changed : " + offer.getLastChanged().toString());
         label6.setText("Views : " + offer.getViews());
         label7.setText("Highest Bidder : " + offer.getHighestBidder());

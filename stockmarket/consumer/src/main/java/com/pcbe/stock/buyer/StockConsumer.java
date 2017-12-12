@@ -31,15 +31,15 @@ public class StockConsumer implements Runnable {
     
     private float minPrice;
     private float maxPrice;
-    private float minDate;
+    private long minDate;
     private String company;
     
-    public StockConsumer(String id, float minPrice, float maxPrice, float minDate) {
+    public StockConsumer(String id, float minPrice, float maxPrice, long minDate) {
         this.id = id;
         this.minPrice = minPrice;
         this.maxPrice = maxPrice;
         this.minDate = minDate;
-        this.company = "*";
+        this.company = "";
     }
     
     public void setMinPrice(float minPrice) {
@@ -54,6 +54,10 @@ public class StockConsumer implements Runnable {
         this.company = company;
     }
     
+    public void setMinDate(long date) {
+        this.minDate = date;
+    }
+    
     private String buildFilter() {
         return "(" +
                     "(" +
@@ -64,8 +68,8 @@ public class StockConsumer implements Runnable {
                     " (price BETWEEN " + minPrice + " AND " + maxPrice + " OR" +
                     " oldPrice BETWEEN " + minPrice + " AND " + maxPrice + ")" +
                     " AND" +
-                    " dateAvailable >= " + minDate + " AND" +
-                    " company = '" + company + "'" +
+                    " dateAvailable >= " + minDate + 
+                    ((company == null || company.equals("")) ? "" : " AND" + " company = '" + company + "'") +
                 ") OR eventType= '" + StockEventType.ST_OFFER_CLOSED + "'";
                 
     }
@@ -137,6 +141,8 @@ public class StockConsumer implements Runnable {
 
             messageProducer = session.createProducer(destination);
             messageProducer.setDeliveryMode(DeliveryMode.PERSISTENT);
+            
+            requestOffers();
         } catch(JMSException e) {
             LOG.error(e.getMessage());
         }

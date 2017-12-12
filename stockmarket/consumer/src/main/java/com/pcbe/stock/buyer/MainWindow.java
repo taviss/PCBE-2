@@ -48,7 +48,7 @@ public class MainWindow {
                         JOptionPane.showMessageDialog(null, "Username cannot be empty");
                     } else {
                         connect = true;
-                        new StockConsumer(username, 0, 99999, 0f).run();
+                        new StockConsumer(username, 0, 99999, 0).run();
                         mainFrame.setVisible(false);
                     }
                 }

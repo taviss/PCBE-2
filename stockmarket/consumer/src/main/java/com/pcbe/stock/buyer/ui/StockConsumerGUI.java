@@ -32,6 +32,8 @@ public class StockConsumerGUI {
     private DateFormat format = new SimpleDateFormat("dd/MM/yyyy");
     private Date date;
     private float price;
+    
+    private ImageIcon icon;
 
     public StockConsumerGUI(String username, float minPrice, float maxPrice) {
         try {
@@ -58,6 +60,10 @@ public class StockConsumerGUI {
                 Offer selectedOffer = offerList.getSelectedValue();
                 if (selectedOffer != null) {
                     JFrame bidFrame = new JFrame("Start bidding");
+                    bidFrame.setLocationRelativeTo(null);
+                    if(icon != null) {
+                        bidFrame.setIconImage(icon.getImage());
+                    }
                     JPanel offerPanel = new JPanel();
                     offerPanel.setLayout(new BoxLayout(offerPanel, BoxLayout.Y_AXIS));
                     offerPanel.add(new JLabel("Description: " + selectedOffer.getDescription()));
@@ -133,7 +139,8 @@ public class StockConsumerGUI {
                                     input.setText(String.valueOf(maxPrice));
                                     break;
                                 }
-                                case "Oldest": {
+                                case "MinDate": {
+                                    input.setText(date.toString());
                                     break;
                                 }
                             }
@@ -163,7 +170,7 @@ public class StockConsumerGUI {
                                 JOptionPane.showMessageDialog(null, "The price value is not a number.");
                             }
                         }
-                        if(comboBox.getSelectedItem().equals("Oldest")) {
+                        if(comboBox.getSelectedItem().equals("MinDate")) {
                             String string = input.getText();
                             try {
                                 date = format.parse(string);
@@ -175,6 +182,7 @@ public class StockConsumerGUI {
                         listener.setMinPrice(minPrice);
                         listener.setMaxPrice(maxPrice);
                         listener.setCompany(company);
+                        listener.setMinDate(date.getTime());
                         filters.add(comboBox.getSelectedItem() + ":" + input.getText());
                         break;
                 }
@@ -224,16 +232,16 @@ public class StockConsumerGUI {
 
     private void initGUI() {
         JFrame mainFrame = new JFrame("Buyer: " + username);
+        URL img = getClass().getClassLoader().getResource("buyer.png");
+        if(img != null) {
+            icon = new ImageIcon(img);
+            mainFrame.setIconImage(icon.getImage());
+        }
         JPanel mainPanel = new JPanel(new BorderLayout());
         JPanel contentPanel = initContent();
         mainPanel.add(contentPanel, BorderLayout.WEST);
         mainFrame.add(mainPanel);
         mainFrame.setResizable(true);
-        URL img = getClass().getClassLoader().getResource("buyer.png");
-        if(img != null) {
-            ImageIcon icon = new ImageIcon(img);
-            mainFrame.setIconImage(icon.getImage());
-        }
         mainFrame.pack();
         mainFrame.setLocationRelativeTo(null);
         mainFrame.setVisible(true);
