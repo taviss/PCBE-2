@@ -219,14 +219,14 @@ public class StockPublisherGUI {
         for (int i = 0; i < offerNumber; i++) {
             Offer offer = model.getElementAt(i);
             if (offerA.getId() == offer.getId()) {
+                offer.increment();
                 if(offerA.getPrice() > offer.getPrice()) {
                     ((DefaultListModel<Offer>) model).remove(i);
-                    offer.increment();
                     offer.setPrice(offerA.getPrice());
                     offer.setHighestBidder(offerA.getHighestBidder());
                     ((DefaultListModel<Offer>) model).insertElementAt(offer, i);
-                    notifyEdited(offer);
                 }
+                notifyEdited(offer);
                 break;
             }
         }

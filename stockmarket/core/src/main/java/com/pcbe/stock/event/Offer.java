@@ -8,7 +8,7 @@ public class Offer implements Serializable {
     private static final long serialVersionUID = 1L;
     private boolean closed = false;
     private int views = 0;
-    private boolean visibleViews = false;
+    private boolean visibleViews = true;
     private String title;
     private String description;
     private Float price;
