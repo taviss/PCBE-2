@@ -120,7 +120,7 @@ public class StockConsumerGUI {
                 JPanel selectPanel = new JPanel(new GridLayout(2, 1));
                 JTextField input = new JTextField(10);
                 JComboBox<String> comboBox = new JComboBox<>(
-                        new String[] { "Company", "MinPrice", "MaxPrice", "Oldest" });
+                        new String[] { "Company", "MinPrice", "MaxPrice", "MinDate" });
                 input.setText(company);
                 comboBox.addItemListener(new ItemListener() {
                     @Override
@@ -140,7 +140,7 @@ public class StockConsumerGUI {
                                     break;
                                 }
                                 case "MinDate": {
-                                    input.setText(date.toString());
+                                    input.setText(format.format(date));
                                     break;
                                 }
                             }
